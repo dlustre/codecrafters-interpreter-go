@@ -107,6 +107,8 @@ func (s *Scanner) scanToken() {
 			for s.peek() != '\n' && !s.isAtEnd() {
 				s.advance()
 			}
+		} else {
+			s.addToken(SLASH)
 		}
 	case ' ', '\r', '\t':
 		// Ignore whitespace.
