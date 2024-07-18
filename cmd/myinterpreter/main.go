@@ -5,43 +5,7 @@ import (
 	"os"
 )
 
-const (
-	LEFT_PAREN = iota
-	RIGHT_PAREN
-	LEFT_BRACE
-	RIGHT_BRACE
-)
-
-var tokenNames = map[int]string{
-	LEFT_PAREN:  "LEFT_PAREN",
-	RIGHT_PAREN: "RIGHT_PAREN",
-	LEFT_BRACE:  "LEFT_BRACE",
-	RIGHT_BRACE: "RIGHT_BRACE",
-}
-
-func printToken(t int, s string) {
-	fmt.Printf("%s %s null\n", tokenNames[t], s)
-}
-
-func scanToken(b byte) {
-	switch b {
-	case '(':
-		printToken(LEFT_PAREN, string(b))
-	case ')':
-		printToken(RIGHT_PAREN, string(b))
-	case '{':
-		printToken(LEFT_BRACE, string(b))
-	case '}':
-		printToken(RIGHT_BRACE, string(b))
-	}
-}
-
-func scanTokens(fileContents []byte) {
-	for _, b := range fileContents {
-		scanToken(b)
-	}
-	fmt.Println("EOF  null")
-}
+var hadError = false
 
 func main() {
 	if len(os.Args) < 3 {
@@ -63,9 +27,31 @@ func main() {
 		os.Exit(1)
 	}
 
-	if len(fileContents) > 0 {
-		scanTokens(fileContents)
-	} else {
-		fmt.Println("EOF  null") // Placeholder, remove this line when implementing the scanner
+	scanner := NewScanner(string(fileContents))
+	tokens := scanner.scanTokens()
+	print(tokens)
+	if hadError {
+		os.Exit(65)
+	}
+}
+
+// func runFile(path []byte) {}
+
+// func runPrompt() {}
+
+// func run(source string) {}
+
+func error(line int, message string) {
+	report(line, "", message)
+}
+
+func report(line int, where, message string) {
+	fmt.Fprintf(os.Stderr, "[line %d] Error %s: %s", line, where, message)
+	hadError = true
+}
+
+func print(tokens []Token) {
+	for _, token := range tokens {
+		fmt.Println(token)
 	}
 }
