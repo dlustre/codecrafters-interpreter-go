@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+)
 
 const (
 	// Single-character tokens.
@@ -102,8 +105,16 @@ type Token struct {
 }
 
 func (t Token) String() string {
-	if t.Literal != nil {
-		return fmt.Sprintf("%s %s %v", tokenNames[t.Type], t.Lexeme, t.Literal)
+	switch literal := t.Literal.(type) {
+	// Display numbers with at least one decimal point.
+	case float64:
+		if math.Floor(literal) == literal {
+			return fmt.Sprintf("%s %s %v.0", tokenNames[t.Type], t.Lexeme, literal)
+		}
+		return fmt.Sprintf("%s %s %v", tokenNames[t.Type], t.Lexeme, literal)
+	case nil:
+		return fmt.Sprintf("%s %s %v", tokenNames[t.Type], t.Lexeme, "null")
+	default:
+		return fmt.Sprintf("%s %s %v", tokenNames[t.Type], t.Lexeme, literal)
 	}
-	return fmt.Sprintf("%s %s %v", tokenNames[t.Type], t.Lexeme, "null")
 }
