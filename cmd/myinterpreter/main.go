@@ -5,15 +5,40 @@ import (
 	"os"
 )
 
+const (
+	LEFT_PAREN = iota
+	RIGHT_PAREN
+	LEFT_BRACE
+	RIGHT_BRACE
+)
+
+var tokenNames = map[int]string{
+	LEFT_PAREN:  "LEFT_PAREN",
+	RIGHT_PAREN: "RIGHT_PAREN",
+	LEFT_BRACE:  "LEFT_BRACE",
+	RIGHT_BRACE: "RIGHT_BRACE",
+}
+
+func printToken(t int, s string) {
+	fmt.Printf("%s %s null\n", tokenNames[t], s)
+}
+
+func scanToken(b byte) {
+	switch b {
+	case '(':
+		printToken(LEFT_PAREN, string(b))
+	case ')':
+		printToken(RIGHT_PAREN, string(b))
+	case '{':
+		printToken(LEFT_BRACE, string(b))
+	case '}':
+		printToken(RIGHT_BRACE, string(b))
+	}
+}
+
 func scanTokens(fileContents []byte) {
 	for _, b := range fileContents {
-		switch b {
-		case '(':
-			fmt.Printf("LEFT_PAREN %s null", string(b))
-		case ')':
-			fmt.Printf("RIGHT_PAREN %s null", string(b))
-		}
-		fmt.Print("\n")
+		scanToken(b)
 	}
 	fmt.Println("EOF  null")
 }
