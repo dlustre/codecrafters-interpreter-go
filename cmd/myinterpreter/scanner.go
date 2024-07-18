@@ -1,6 +1,9 @@
 package main
 
-import "strconv"
+import (
+	"fmt"
+	"strconv"
+)
 
 var keywords = map[string]int{
 	"and":    AND,
@@ -118,7 +121,7 @@ func (s *Scanner) scanToken() {
 		} else if isAlpha(c) {
 			s.identifier()
 		} else {
-			error(s.line, "Unexpected character.")
+			error(s.line, fmt.Sprintf("Unexpected character: %c", c))
 		}
 	}
 }
