@@ -100,7 +100,7 @@ func FormatLiteral(literal any) string {
 	case float64:
 		return formatNumberLiteral(l)
 	case nil:
-		return fmt.Sprintf("%v", "null")
+		return fmt.Sprintf("%v", "nil")
 	default:
 		return fmt.Sprintf("%v", l)
 	}
