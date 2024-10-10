@@ -29,7 +29,7 @@ func main() {
 		tokens := scanner.scanTokens()
 		print(tokens)
 		if hadError {
-			return
+			os.Exit(65)
 		}
 	case "parse":
 		filename := os.Args[2]
@@ -45,7 +45,7 @@ func main() {
 		expression := parser.Parse()
 
 		if hadError {
-			return
+			os.Exit(65)
 		}
 
 		fmt.Println(AstPrinter{}.Print(expression))
