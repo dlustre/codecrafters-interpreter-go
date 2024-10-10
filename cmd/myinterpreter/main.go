@@ -95,12 +95,12 @@ func formatNumberLiteral(number float64) string {
 }
 
 // Utility function to comply with codecrafters' assertions.
-func FormatLiteral(literal any) string {
+func FormatLiteral(literal any, nilName string) string {
 	switch l := literal.(type) {
 	case float64:
 		return formatNumberLiteral(l)
 	case nil:
-		return fmt.Sprintf("%v", "nil")
+		return nilName
 	default:
 		return fmt.Sprintf("%v", l)
 	}

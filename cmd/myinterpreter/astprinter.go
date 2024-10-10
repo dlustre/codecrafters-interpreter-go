@@ -19,7 +19,7 @@ func (ap AstPrinter) VisitGroupingExpr(expr Grouping) any {
 }
 
 func (ap AstPrinter) VisitLiteralExpr(expr Literal) any {
-	return FormatLiteral(expr.Value)
+	return FormatLiteral(expr.Value, "nil")
 }
 
 func (ap AstPrinter) VisitUnaryExpr(expr Unary) any {
