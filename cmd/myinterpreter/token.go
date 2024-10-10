@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
-	"math"
 )
+
+type TokenType int
 
 const (
 	// Single-character tokens.
-	LEFT_PAREN = iota
+	LEFT_PAREN TokenType = iota
 	RIGHT_PAREN
 	LEFT_BRACE
 	RIGHT_BRACE
@@ -55,7 +56,7 @@ const (
 	EOF
 )
 
-var tokenNames = map[int]string{
+var tokenNames = map[TokenType]string{
 	LEFT_PAREN:    "LEFT_PAREN",
 	RIGHT_PAREN:   "RIGHT_PAREN",
 	LEFT_BRACE:    "LEFT_BRACE",
@@ -98,23 +99,12 @@ var tokenNames = map[int]string{
 }
 
 type Token struct {
-	Type    int
+	Type    TokenType
 	Lexeme  string
 	Literal interface{}
 	Line    int
 }
 
 func (t Token) String() string {
-	switch literal := t.Literal.(type) {
-	// Display numbers with at least one decimal point.
-	case float64:
-		if math.Floor(literal) == literal {
-			return fmt.Sprintf("%s %s %v.0", tokenNames[t.Type], t.Lexeme, literal)
-		}
-		return fmt.Sprintf("%s %s %v", tokenNames[t.Type], t.Lexeme, literal)
-	case nil:
-		return fmt.Sprintf("%s %s %v", tokenNames[t.Type], t.Lexeme, "null")
-	default:
-		return fmt.Sprintf("%s %s %v", tokenNames[t.Type], t.Lexeme, literal)
-	}
+	return fmt.Sprintf("%s %s %s", tokenNames[t.Type], t.Lexeme, FormatLiteral(t.Literal))
 }
