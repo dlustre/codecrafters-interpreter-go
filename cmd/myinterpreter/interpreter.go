@@ -41,7 +41,7 @@ func (Interpreter) VisitBinaryExpr(expr Binary) any {
 	switch expr.Operator.Type {
 	case BANG_EQUAL:
 		return EvalResult{!isEqual(left, right), nil}
-	case EQUAL:
+	case EQUAL_EQUAL:
 		return EvalResult{isEqual(left, right), nil}
 	case GREATER:
 		err := checkNumberOperands(expr.Operator, left, right)
