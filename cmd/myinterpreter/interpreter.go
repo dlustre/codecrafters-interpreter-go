@@ -108,7 +108,7 @@ func (Interpreter) VisitBinaryExpr(expr Binary) any {
 }
 
 func (Interpreter) VisitGroupingExpr(expr Grouping) any {
-	return evaluate(expr)
+	return evaluate(expr.Expression)
 }
 
 func (Interpreter) VisitLiteralExpr(expr Literal) any {
