@@ -81,7 +81,7 @@ func tokenError(token Token, message string) {
 }
 
 func runtimeError(err RuntimeError) {
-	fmt.Println(err)
+	// fmt.Println(err)
 	hadRuntimeError = true
 }
 

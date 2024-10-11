@@ -17,6 +17,7 @@ func InterpretAst(expression Expr) {
 	var err RuntimeError
 	if errors.As(evalResult.Err, &err) {
 		runtimeError(err)
+		return
 	}
 	fmt.Println(stringify(evalResult.Value, "nil", false))
 }
@@ -100,7 +101,7 @@ func (Interpreter) VisitBinaryExpr(expr Binary) any {
 			return EvalResult{stringLeft + stringRight, nil}
 		}
 
-		return EvalResult{nil, &RuntimeError{expr.Operator, "Operands must be two numbers or two strings."}}
+		return EvalResult{nil, RuntimeError{expr.Operator, "Operands must be two numbers or two strings."}}
 	}
 
 	// Unreachable.
@@ -142,7 +143,7 @@ func checkNumberOperand(operator Token, operand any) error {
 	if _, ok := operand.(float64); ok {
 		return nil
 	}
-	return &RuntimeError{operator, "Operand must be a number."}
+	return RuntimeError{operator, "Operand must be a number."}
 }
 
 func checkNumberOperands(operator Token, left, right any) error {
@@ -153,7 +154,7 @@ func checkNumberOperands(operator Token, left, right any) error {
 		return nil
 	}
 
-	return &RuntimeError{operator, "Operands must be numbers."}
+	return RuntimeError{operator, "Operands must be numbers."}
 }
 
 func isTruthy(object any) bool {
