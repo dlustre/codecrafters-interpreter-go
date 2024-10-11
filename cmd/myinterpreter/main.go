@@ -7,6 +7,7 @@ import (
 )
 
 var hadError = false
+var hadRuntimeError = false
 
 func main() {
 	if len(os.Args) < 3 {
@@ -18,60 +19,72 @@ func main() {
 
 	switch command {
 	case "tokenize":
-		filename := os.Args[2]
-		fileContents, err := os.ReadFile(filename)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
-			os.Exit(1)
-		}
-
-		scanner := NewScanner(string(fileContents))
-		tokens := scanner.scanTokens()
+		source := fileToSource(os.Args[2])
+		tokens := sourceToTokens(source)
 		print(tokens)
-		if hadError {
-			os.Exit(65)
-		}
 	case "parse":
-		filename := os.Args[2]
-		fileContents, err := os.ReadFile(filename)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
-			os.Exit(1)
-		}
-
-		scanner := NewScanner(string(fileContents))
-		tokens := scanner.scanTokens()
-		parser := Parser{tokens, 0}
-		expression := parser.Parse()
-
-		if hadError {
-			os.Exit(65)
-		}
-
-		fmt.Println(AstPrinter{}.Print(expression))
+		source := fileToSource(os.Args[2])
+		tokens := sourceToTokens(source)
+		ast := tokensToAst(tokens)
+		fmt.Println(PrintAst(ast))
+	case "evaluate":
+		source := fileToSource(os.Args[2])
+		tokens := sourceToTokens(source)
+		ast := tokensToAst(tokens)
+		InterpretAst(ast)
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
 		os.Exit(1)
 	}
 
+	if hadError {
+		os.Exit(65)
+	}
+	if hadRuntimeError {
+		os.Exit(70)
+	}
 }
 
-// func runFile(path []byte) {}
+func fileToSource(name string) string {
+	fileContents, err := os.ReadFile(name)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
+		os.Exit(1)
+	}
+	return string(fileContents)
+}
 
-// func runPrompt() {}
+func sourceToTokens(source string) []Token {
+	scanner := &Scanner{
+		Source:  source,
+		Tokens:  []Token{},
+		Start:   0,
+		Current: 0,
+		Line:    1,
+	}
+	return scanner.scanTokens()
+}
 
-// func run(source string) {}
+func tokensToAst(tokens []Token) Expr {
+	parser := Parser{tokens, 0}
+	return parser.Parse()
+}
 
 func lineError(line int, message string) {
 	report(line, "", message)
 }
 
-func TokenError(token Token, message string) {
+func tokenError(token Token, message string) {
 	if token.Type == EOF {
 		report(token.Line, " at end", message)
 	} else {
 		report(token.Line, " at '"+token.Lexeme+"'", message)
 	}
+}
+
+func runtimeError(err RuntimeError) {
+	fmt.Println(err)
+	hadRuntimeError = true
 }
 
 func report(line int, where, message string) {
@@ -85,20 +98,18 @@ func print(tokens []Token) {
 	}
 }
 
-// Utility function to display Lox numbers in a way that codecrafters expects.
-func formatNumberLiteral(number float64) string {
-	// Display numbers with at least one decimal point.
-	if math.Floor(number) == number {
+func stringifyNumber(number float64, trailingZero bool) string {
+	if trailingZero && math.Floor(number) == number {
 		return fmt.Sprintf("%v.0", number)
 	}
 	return fmt.Sprintf("%v", number)
 }
 
-// Utility function to comply with codecrafters' assertions.
-func FormatLiteral(literal any, nilName string) string {
+// Exposes additional in case we need to display things differently.
+func stringify(literal any, nilName string, trailingZero bool) string {
 	switch l := literal.(type) {
 	case float64:
-		return formatNumberLiteral(l)
+		return stringifyNumber(l, trailingZero)
 	case nil:
 		return nilName
 	default:

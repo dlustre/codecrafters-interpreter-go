@@ -7,16 +7,18 @@ type Parser struct {
 	Current int
 }
 
+var ErrParse = fmt.Errorf("ParseError")
+
 func (p *Parser) Parse() Expr {
-	expr, err := p.Expression()
+	expr, err := p.expression()
 	if err != nil {
 		return nil
 	}
 	return expr
 }
 
-// Expression -> equality
-func (p *Parser) Expression() (Expr, error) {
+// expression -> equality
+func (p *Parser) expression() (Expr, error) {
 	return p.equality()
 }
 
@@ -125,7 +127,7 @@ func (p *Parser) primary() (Expr, error) {
 		return Literal{p.previous().Literal}, nil
 	}
 	if p.match(LEFT_PAREN) {
-		expr, err := p.Expression()
+		expr, err := p.expression()
 		if err != nil {
 			return nil, err
 		}
@@ -184,10 +186,8 @@ func (p *Parser) previous() Token {
 	return p.Tokens[p.Current-1]
 }
 
-var ErrParse = fmt.Errorf("ParseError")
-
 func parseError(token Token, message string) error {
-	TokenError(token, message)
+	tokenError(token, message)
 	return ErrParse
 }
 

@@ -32,7 +32,7 @@ type Scanner struct {
 	Line    int
 }
 
-func NewScanner(source string) *Scanner {
+func newScanner(source string) *Scanner {
 	return &Scanner{
 		Source:  source,
 		Tokens:  []Token{},
