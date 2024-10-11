@@ -19,42 +19,33 @@ func main() {
 
 	switch command {
 	case "tokenize":
-		source := fileToSource(os.Args[2])
-		tokens := sourceToTokens(source)
+		tokens := runTokenize(os.Args[2])
 		print(tokens)
 	case "parse":
-		source := fileToSource(os.Args[2])
-		tokens := sourceToTokens(source)
-		ast := tokensToAst(tokens)
-		fmt.Println(PrintAst(ast))
+		tokens := runTokenize(os.Args[2])
+		ast := runParse(tokens)
+		fmt.Println(AstPrinter{}.PrintAst(ast))
 	case "evaluate":
-		source := fileToSource(os.Args[2])
-		tokens := sourceToTokens(source)
-		ast := tokensToAst(tokens)
+		tokens := runTokenize(os.Args[2])
+		ast := runParse(tokens)
 		InterpretAst(ast)
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
 		os.Exit(1)
 	}
 
-	if hadError {
-		os.Exit(65)
-	}
 	if hadRuntimeError {
 		os.Exit(70)
 	}
 }
 
-func fileToSource(name string) string {
-	fileContents, err := os.ReadFile(name)
+func runTokenize(filename string) []Token {
+	fileContents, err := os.ReadFile(filename)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
 		os.Exit(1)
 	}
-	return string(fileContents)
-}
-
-func sourceToTokens(source string) []Token {
+	source := string(fileContents)
 	scanner := &Scanner{
 		Source:  source,
 		Tokens:  []Token{},
@@ -62,12 +53,20 @@ func sourceToTokens(source string) []Token {
 		Current: 0,
 		Line:    1,
 	}
-	return scanner.scanTokens()
+	tokens := scanner.scanTokens()
+	if hadError {
+		os.Exit(65)
+	}
+	return tokens
 }
 
-func tokensToAst(tokens []Token) Expr {
-	parser := Parser{tokens, 0}
-	return parser.Parse()
+func runParse(tokens []Token) Expr {
+	parser := &Parser{tokens, 0}
+	ast := parser.Parse()
+	if hadError {
+		os.Exit(65)
+	}
+	return ast
 }
 
 func lineError(line int, message string) {
