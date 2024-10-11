@@ -54,9 +54,6 @@ func runTokenize(filename string) []Token {
 		Line:    1,
 	}
 	tokens := scanner.scanTokens()
-	if hadError {
-		os.Exit(65)
-	}
 	return tokens
 }
 
