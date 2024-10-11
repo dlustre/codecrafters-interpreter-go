@@ -7,8 +7,8 @@ import (
 
 type AstPrinter struct{}
 
-func (ap AstPrinter) PrintAst(expr Expr) string {
-	return expr.Accept(ap).(string)
+func PrintAst(expr Expr) string {
+	return expr.Accept(AstPrinter{}).(string)
 }
 
 func (AstPrinter) VisitBinaryExpr(expr Binary) any {
@@ -53,7 +53,7 @@ func Test() {
 		Grouping{Literal{45.67}},
 	}
 
-	printResult := AstPrinter{}.PrintAst(expression)
+	printResult := PrintAst(expression)
 	expectedResult := "(* (- 123) (group 45.67))"
 	fmt.Println(printResult)
 	if printResult != expectedResult {

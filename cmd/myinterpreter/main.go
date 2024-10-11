@@ -21,21 +21,26 @@ func main() {
 	case "tokenize":
 		tokens := runTokenize(os.Args[2])
 		print(tokens)
+		if hadError {
+			os.Exit(65)
+		}
 	case "parse":
 		tokens := runTokenize(os.Args[2])
 		ast := runParse(tokens)
-		fmt.Println(AstPrinter{}.PrintAst(ast))
+		if hadError {
+			os.Exit(65)
+		}
+		fmt.Println(PrintAst(ast))
 	case "evaluate":
 		tokens := runTokenize(os.Args[2])
 		ast := runParse(tokens)
 		InterpretAst(ast)
+		if hadRuntimeError {
+			os.Exit(70)
+		}
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
 		os.Exit(1)
-	}
-
-	if hadRuntimeError {
-		os.Exit(70)
 	}
 }
 
@@ -60,9 +65,6 @@ func runTokenize(filename string) []Token {
 func runParse(tokens []Token) Expr {
 	parser := &Parser{tokens, 0}
 	ast := parser.Parse()
-	if hadError {
-		os.Exit(65)
-	}
 	return ast
 }
 
