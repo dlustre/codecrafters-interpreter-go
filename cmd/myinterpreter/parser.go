@@ -12,15 +12,26 @@ var ErrParse = fmt.Errorf("ParseError")
 func (p *Parser) ParseToStatements() []Stmt {
 	statements := []Stmt{}
 	for !p.isAtEnd() {
-		statement, err := p.statement()
-		if err != nil {
-			return nil
+		if statement := p.declaration(); statement != nil {
+			statements = append(statements, statement)
 		}
-		statements = append(statements, statement)
 	}
 
 	return statements
 }
+
+// func (p *Parser) ParseToStatements() []Stmt {
+// 	statements := []Stmt{}
+// 	for !p.isAtEnd() {
+// 		statement, err := p.declaration()
+// 		if err != nil {
+// 			return nil
+// 		}
+// 		statements = append(statements, statement)
+// 	}
+
+// 	return statements
+// }
 
 func (p *Parser) ParseToExpr() Expr {
 	expr, err := p.expression()
@@ -35,6 +46,24 @@ func (p *Parser) expression() (Expr, error) {
 	return p.equality()
 }
 
+func (p *Parser) declaration() Stmt {
+	if p.match(VAR) {
+		stmt, err := p.varDeclaration()
+		if err != nil {
+			p.synchronize()
+			return nil
+		}
+		return stmt
+	}
+	stmt, err := p.statement()
+	if err != nil {
+		p.synchronize()
+		return nil
+	}
+	return stmt
+}
+
+// statement -> exprStmt | printStmt
 func (p *Parser) statement() (Stmt, error) {
 	if p.match(PRINT) {
 		return p.printStatement()
@@ -42,6 +71,7 @@ func (p *Parser) statement() (Stmt, error) {
 	return p.expressionStatement()
 }
 
+// printStmt -> "print" expression ";"
 func (p *Parser) printStatement() (Stmt, error) {
 	value, err := p.expression()
 	if err != nil {
@@ -51,6 +81,27 @@ func (p *Parser) printStatement() (Stmt, error) {
 	return Print{value}, nil
 }
 
+// varDecl -> "var" IDENTIFIER ( "=" expression )? ";"
+func (p *Parser) varDeclaration() (Stmt, error) {
+	name, err := p.consume(IDENTIFIER, "Expect variable name.")
+	if err != nil {
+		return nil, err
+	}
+
+	var initializer Expr
+	if p.match(EQUAL) {
+		value, err := p.expression()
+		if err != nil {
+			return nil, err
+		}
+		initializer = value
+	}
+
+	p.consume(SEMICOLON, "Expect ';' after variable declaration.")
+	return Var{name, initializer}, nil
+}
+
+// exprStmt -> expression ";"
 func (p *Parser) expressionStatement() (Stmt, error) {
 	expr, err := p.expression()
 	if err != nil {
@@ -163,6 +214,9 @@ func (p *Parser) primary() (Expr, error) {
 	}
 	if p.match(NUMBER, STRING) {
 		return Literal{p.previous().Literal}, nil
+	}
+	if p.match(IDENTIFIER) {
+		return Variable{p.previous()}, nil
 	}
 	if p.match(LEFT_PAREN) {
 		expr, err := p.expression()

@@ -8,23 +8,27 @@ import (
 type AstPrinter struct{}
 
 func PrintAst(expr Expr) string {
-	return expr.Accept(AstPrinter{}).(string)
+	return expr.Accept(&AstPrinter{}).(string)
 }
 
-func (AstPrinter) VisitBinaryExpr(expr Binary) any {
+func (*AstPrinter) VisitBinaryExpr(expr Binary) any {
 	return parenthesize(expr.Operator.Lexeme, expr.Left, expr.Right)
 }
 
-func (AstPrinter) VisitGroupingExpr(expr Grouping) any {
+func (*AstPrinter) VisitGroupingExpr(expr Grouping) any {
 	return parenthesize("group", expr.Expression)
 }
 
-func (AstPrinter) VisitLiteralExpr(expr Literal) any {
+func (*AstPrinter) VisitLiteralExpr(expr Literal) any {
 	return stringify(expr.Value, "nil", true)
 }
 
-func (AstPrinter) VisitUnaryExpr(expr Unary) any {
+func (*AstPrinter) VisitUnaryExpr(expr Unary) any {
 	return parenthesize(expr.Operator.Lexeme, expr.Right)
+}
+
+func (*AstPrinter) VisitVariableExpr(expr Variable) any {
+	return nil
 }
 
 func parenthesize(name string, exprs ...Expr) string {
@@ -34,7 +38,7 @@ func parenthesize(name string, exprs ...Expr) string {
 	sb.WriteString(name)
 	for _, expr := range exprs {
 		sb.WriteRune(' ')
-		sb.WriteString(expr.Accept(AstPrinter{}).(string))
+		sb.WriteString(expr.Accept(&AstPrinter{}).(string))
 	}
 	sb.WriteRune(')')
 

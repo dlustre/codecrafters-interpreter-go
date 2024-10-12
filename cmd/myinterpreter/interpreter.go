@@ -10,11 +10,14 @@ type EvalResult struct {
 	Err   error
 }
 
-type Interpreter struct{}
+type Interpreter struct {
+	Environment Environment
+}
 
 func InterpretStatements(statements []Stmt) {
+	interpreter := &Interpreter{Environment{make(map[string]any)}}
 	for _, statement := range statements {
-		evalResult := execute(statement)
+		evalResult := interpreter.execute(statement)
 		var err RuntimeError
 		if errors.As(evalResult.Err, &err) {
 			runtimeError(err)
@@ -24,7 +27,8 @@ func InterpretStatements(statements []Stmt) {
 }
 
 func InterpretExpr(expression Expr) {
-	evalResult := evaluate(expression)
+	interpreter := &Interpreter{Environment{make(map[string]any)}}
+	evalResult := interpreter.evaluate(expression)
 	var err RuntimeError
 	if errors.As(evalResult.Err, &err) {
 		runtimeError(err)
@@ -33,31 +37,46 @@ func InterpretExpr(expression Expr) {
 	fmt.Println(stringify(evalResult.Value, "nil", false))
 }
 
-func evaluate(expr Expr) EvalResult {
-	return expr.Accept(Interpreter{}).(EvalResult)
+func (i *Interpreter) evaluate(expr Expr) EvalResult {
+	return expr.Accept(i).(EvalResult)
 }
 
-func execute(stmt Stmt) EvalResult {
-	return stmt.Accept(Interpreter{}).(EvalResult)
+func (i *Interpreter) execute(stmt Stmt) EvalResult {
+	return stmt.Accept(i).(EvalResult)
 }
 
-func (Interpreter) VisitExpressionStmt(stmt Expression) any {
-	evalResult := evaluate(stmt.Expression)
+func (i *Interpreter) VisitExpressionStmt(stmt Expression) any {
+	evalResult := i.evaluate(stmt.Expression)
 	return evalResult
 }
 
-func (Interpreter) VisitPrintStmt(stmt Print) any {
-	evalResult := evaluate(stmt.Expression)
+func (i *Interpreter) VisitPrintStmt(stmt Print) any {
+	evalResult := i.evaluate(stmt.Expression)
 	fmt.Println(stringify(evalResult.Value, "", false))
 	return evalResult
 }
 
-func (Interpreter) VisitBinaryExpr(expr Binary) any {
-	leftResult := evaluate(expr.Left)
+func (i *Interpreter) VisitVarStmt(stmt Var) any {
+	var value any
+	if stmt.Initializer != nil {
+		evalResult := i.evaluate(stmt.Initializer)
+		var err RuntimeError
+		if errors.As(evalResult.Err, &err) {
+			runtimeError(err)
+			return EvalResult{}
+		}
+		value = evalResult.Value
+	}
+	i.Environment.define(stmt.Name.Lexeme, value)
+	return EvalResult{}
+}
+
+func (i *Interpreter) VisitBinaryExpr(expr Binary) any {
+	leftResult := i.evaluate(expr.Left)
 	if leftResult.Err != nil {
 		return leftResult
 	}
-	rightResult := evaluate(expr.Right)
+	rightResult := i.evaluate(expr.Right)
 	if rightResult.Err != nil {
 		return rightResult
 	}
@@ -134,16 +153,16 @@ func (Interpreter) VisitBinaryExpr(expr Binary) any {
 	return EvalResult{}
 }
 
-func (Interpreter) VisitGroupingExpr(expr Grouping) any {
-	return evaluate(expr.Expression)
+func (i *Interpreter) VisitGroupingExpr(expr Grouping) any {
+	return i.evaluate(expr.Expression)
 }
 
-func (Interpreter) VisitLiteralExpr(expr Literal) any {
+func (i *Interpreter) VisitLiteralExpr(expr Literal) any {
 	return EvalResult{expr.Value, nil}
 }
 
-func (Interpreter) VisitUnaryExpr(expr Unary) any {
-	rightResult := evaluate(expr.Right)
+func (i *Interpreter) VisitUnaryExpr(expr Unary) any {
+	rightResult := i.evaluate(expr.Right)
 	if rightResult.Err != nil {
 		return rightResult
 	}
@@ -163,6 +182,11 @@ func (Interpreter) VisitUnaryExpr(expr Unary) any {
 
 	// Unreachable.
 	return EvalResult{}
+}
+
+func (i *Interpreter) VisitVariableExpr(expr Variable) any {
+	value, err := i.Environment.get(expr.Name)
+	return EvalResult{value, err}
 }
 
 func checkNumberOperand(operator Token, operand any) error {
