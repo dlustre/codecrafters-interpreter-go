@@ -9,7 +9,20 @@ type Parser struct {
 
 var ErrParse = fmt.Errorf("ParseError")
 
-func (p *Parser) Parse() Expr {
+func (p *Parser) ParseToStatements() []Stmt {
+	statements := []Stmt{}
+	for !p.isAtEnd() {
+		statement, err := p.statement()
+		if err != nil {
+			return nil
+		}
+		statements = append(statements, statement)
+	}
+
+	return statements
+}
+
+func (p *Parser) ParseToExpr() Expr {
 	expr, err := p.expression()
 	if err != nil {
 		return nil
@@ -20,6 +33,31 @@ func (p *Parser) Parse() Expr {
 // expression -> equality
 func (p *Parser) expression() (Expr, error) {
 	return p.equality()
+}
+
+func (p *Parser) statement() (Stmt, error) {
+	if p.match(PRINT) {
+		return p.printStatement()
+	}
+	return p.expressionStatement()
+}
+
+func (p *Parser) printStatement() (Stmt, error) {
+	value, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+	p.consume(SEMICOLON, "Expect ';' after value.")
+	return Print{value}, nil
+}
+
+func (p *Parser) expressionStatement() (Stmt, error) {
+	expr, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+	p.consume(SEMICOLON, "Expect ';' after expression.")
+	return Expression{expr}, nil
 }
 
 // equality -> comparison ( ("!=" | "==") comparison )*

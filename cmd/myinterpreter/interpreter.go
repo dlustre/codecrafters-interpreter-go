@@ -12,7 +12,18 @@ type EvalResult struct {
 
 type Interpreter struct{}
 
-func InterpretAst(expression Expr) {
+func InterpretStatements(statements []Stmt) {
+	for _, statement := range statements {
+		evalResult := execute(statement)
+		var err RuntimeError
+		if errors.As(evalResult.Err, &err) {
+			runtimeError(err)
+			return
+		}
+	}
+}
+
+func InterpretExpr(expression Expr) {
 	evalResult := evaluate(expression)
 	var err RuntimeError
 	if errors.As(evalResult.Err, &err) {
@@ -24,6 +35,21 @@ func InterpretAst(expression Expr) {
 
 func evaluate(expr Expr) EvalResult {
 	return expr.Accept(Interpreter{}).(EvalResult)
+}
+
+func execute(stmt Stmt) EvalResult {
+	return stmt.Accept(Interpreter{}).(EvalResult)
+}
+
+func (Interpreter) VisitExpressionStmt(stmt Expression) any {
+	evalResult := evaluate(stmt.Expression)
+	return evalResult
+}
+
+func (Interpreter) VisitPrintStmt(stmt Print) any {
+	evalResult := evaluate(stmt.Expression)
+	fmt.Println(stringify(evalResult.Value, "nil", false))
+	return evalResult
 }
 
 func (Interpreter) VisitBinaryExpr(expr Binary) any {

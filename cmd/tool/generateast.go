@@ -18,6 +18,10 @@ func main() {
 		"Literal  : Value any",
 		"Unary    : Operator Token, Right Expr",
 	})
+	defineAst(outputDir, "Stmt", []string{
+		"Expression : Expression Expr",
+		"Print      : Expression Expr",
+	})
 }
 
 func defineAst(outputDir, baseName string, types []string) {
@@ -29,8 +33,8 @@ func defineAst(outputDir, baseName string, types []string) {
 	defer closeFile(file)
 
 	file.WriteString("package main\n\n")
-	file.WriteString("type Expr interface {\n")
-	file.WriteString("\tAccept(visitor Visitor) any\n")
+	file.WriteString("type " + baseName + " interface {\n")
+	file.WriteString("\tAccept(visitor " + baseName + "Visitor) any\n")
 	file.WriteString("}\n\n")
 
 	defineVisitor(file, baseName, types)
@@ -43,7 +47,7 @@ func defineAst(outputDir, baseName string, types []string) {
 }
 
 func defineVisitor(file *os.File, baseName string, types []string) {
-	file.WriteString("type Visitor interface {\n")
+	file.WriteString("type " + baseName + "Visitor interface {\n")
 	for _, t := range types {
 		typeName := strings.TrimSpace(strings.Split(t, ":")[0])
 		file.WriteString("\tVisit" + typeName + baseName + "(" + strings.ToLower(baseName) + " " + typeName + ") any\n")
@@ -58,7 +62,7 @@ func defineType(file *os.File, baseName, className, fields string) {
 	}
 	file.WriteString("}\n\n")
 
-	file.WriteString("func (t " + className + ") Accept(visitor Visitor) any {\n")
+	file.WriteString("func (t " + className + ") Accept(visitor " + baseName + "Visitor) any {\n")
 	file.WriteString("\treturn visitor.Visit" + className + baseName + "(t)\n")
 	file.WriteString("}\n\n")
 }

@@ -26,15 +26,25 @@ func main() {
 		}
 	case "parse":
 		tokens := runTokenize(os.Args[2])
-		ast := runParse(tokens)
+		expr := runParseToExpr(tokens)
 		if hadError {
 			os.Exit(65)
 		}
-		fmt.Println(PrintAst(ast))
+		fmt.Println(PrintAst(expr))
 	case "evaluate":
 		tokens := runTokenize(os.Args[2])
-		ast := runParse(tokens)
-		InterpretAst(ast)
+		expr := runParseToExpr(tokens)
+		InterpretExpr(expr)
+		if hadRuntimeError {
+			os.Exit(70)
+		}
+	case "run":
+		tokens := runTokenize(os.Args[2])
+		statements := runParseToStatements(tokens)
+		if hadError {
+			os.Exit(65)
+		}
+		InterpretStatements(statements)
 		if hadRuntimeError {
 			os.Exit(70)
 		}
@@ -50,9 +60,8 @@ func runTokenize(filename string) []Token {
 		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
 		os.Exit(1)
 	}
-	source := string(fileContents)
 	scanner := &Scanner{
-		Source:  source,
+		Source:  string(fileContents),
 		Tokens:  []Token{},
 		Start:   0,
 		Current: 0,
@@ -62,10 +71,14 @@ func runTokenize(filename string) []Token {
 	return tokens
 }
 
-func runParse(tokens []Token) Expr {
+func runParseToStatements(tokens []Token) []Stmt {
 	parser := &Parser{tokens, 0}
-	ast := parser.Parse()
-	return ast
+	return parser.ParseToStatements()
+}
+
+func runParseToExpr(tokens []Token) Expr {
+	parser := &Parser{tokens, 0}
+	return parser.ParseToExpr()
 }
 
 func lineError(line int, message string) {
