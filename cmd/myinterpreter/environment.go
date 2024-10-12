@@ -7,6 +7,9 @@ type Environment struct {
 func (e *Environment) get(name Token) (any, error) {
 	// fmt.Println("getting " + name.Lexeme)
 	if value, ok := e.Values[name.Lexeme]; ok {
+		if value == nil {
+			return "nil", nil
+		}
 		return value, nil
 	}
 	// fmt.Println("could not find " + name.Lexeme)
