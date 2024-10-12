@@ -11,6 +11,10 @@ func PrintAst(expr Expr) string {
 	return expr.Accept(&AstPrinter{}).(string)
 }
 
+func (*AstPrinter) VisitAssignExpr(expr Assign) any {
+	return nil
+}
+
 func (*AstPrinter) VisitBinaryExpr(expr Binary) any {
 	return parenthesize(expr.Operator.Lexeme, expr.Left, expr.Right)
 }

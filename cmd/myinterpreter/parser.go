@@ -41,9 +41,9 @@ func (p *Parser) ParseToExpr() Expr {
 	return expr
 }
 
-// expression -> equality
+// expression -> assignment
 func (p *Parser) expression() (Expr, error) {
-	return p.equality()
+	return p.assignment()
 }
 
 func (p *Parser) declaration() Stmt {
@@ -109,6 +109,30 @@ func (p *Parser) expressionStatement() (Stmt, error) {
 	}
 	p.consume(SEMICOLON, "Expect ';' after expression.")
 	return Expression{expr}, nil
+}
+
+// assignment -> (IDENTIFIER "=" assignment) | equality
+func (p *Parser) assignment() (Expr, error) {
+	expr, err := p.equality()
+	if err != nil {
+		return nil, err
+	}
+
+	if p.match(EQUAL) {
+		equals := p.previous()
+		value, err := p.assignment()
+		if err != nil {
+			return nil, err
+		}
+
+		if varExpr, ok := expr.(Variable); ok {
+			return Assign{varExpr.Name, value}, nil
+		}
+
+		parseError(equals, "Invalid assignment target.")
+	}
+
+	return expr, nil
 }
 
 // equality -> comparison ( ("!=" | "==") comparison )*

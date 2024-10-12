@@ -16,6 +16,16 @@ func (e *Environment) get(name Token) (any, error) {
 	return nil, RuntimeError{name, "Undefined variable '" + name.Lexeme + "'."}
 }
 
+func (e *Environment) assign(name Token, value any) error {
+	// fmt.Println("assigning " + name.Lexeme)
+	if _, ok := e.Values[name.Lexeme]; ok {
+		e.Values[name.Lexeme] = value
+		return nil
+	}
+	// fmt.Println("could not find " + name.Lexeme)
+	return RuntimeError{name, "Undefined variable '" + name.Lexeme + "'."}
+}
+
 func (e *Environment) define(name string, value any) {
 	// fmt.Printf("defining %s as: %v\n", name, value)
 	e.Values[name] = value

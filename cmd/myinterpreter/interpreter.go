@@ -71,6 +71,17 @@ func (i *Interpreter) VisitVarStmt(stmt Var) any {
 	return EvalResult{}
 }
 
+func (i *Interpreter) VisitAssignExpr(expr Assign) any {
+	evalResult := i.evaluate(expr.Value)
+	var err RuntimeError
+	if errors.As(evalResult.Err, &err) {
+		runtimeError(err)
+		return EvalResult{}
+	}
+	i.Environment.assign(expr.Name, evalResult.Value)
+	return EvalResult{evalResult.Value, nil}
+}
+
 func (i *Interpreter) VisitBinaryExpr(expr Binary) any {
 	leftResult := i.evaluate(expr.Left)
 	if leftResult.Err != nil {
