@@ -48,7 +48,7 @@ func (Interpreter) VisitExpressionStmt(stmt Expression) any {
 
 func (Interpreter) VisitPrintStmt(stmt Print) any {
 	evalResult := evaluate(stmt.Expression)
-	fmt.Println(stringify(evalResult.Value, "nil", false))
+	fmt.Println(stringify(evalResult.Value, "", false))
 	return evalResult
 }
 
