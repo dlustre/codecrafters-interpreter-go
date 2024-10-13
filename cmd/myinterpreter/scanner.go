@@ -32,16 +32,6 @@ type Scanner struct {
 	Line    int
 }
 
-func newScanner(source string) *Scanner {
-	return &Scanner{
-		Source:  source,
-		Tokens:  []Token{},
-		Start:   0,
-		Current: 0,
-		Line:    1,
-	}
-}
-
 func (s *Scanner) scanTokens() []Token {
 	for !s.isAtEnd() {
 		s.Start = s.Current

@@ -11,11 +11,11 @@ type EvalResult struct {
 }
 
 type Interpreter struct {
-	Environment Environment
+	Environment *Environment
 }
 
 func InterpretStatements(statements []Stmt) {
-	interpreter := &Interpreter{Environment{make(map[string]any)}}
+	interpreter := &Interpreter{&Environment{Values: make(map[string]any)}}
 	for _, statement := range statements {
 		evalResult := interpreter.execute(statement)
 		var err RuntimeError
@@ -27,7 +27,7 @@ func InterpretStatements(statements []Stmt) {
 }
 
 func InterpretExpr(expression Expr) {
-	interpreter := &Interpreter{Environment{make(map[string]any)}}
+	interpreter := &Interpreter{&Environment{Values: make(map[string]any)}}
 	evalResult := interpreter.evaluate(expression)
 	var err RuntimeError
 	if errors.As(evalResult.Err, &err) {
@@ -43,6 +43,26 @@ func (i *Interpreter) evaluate(expr Expr) EvalResult {
 
 func (i *Interpreter) execute(stmt Stmt) EvalResult {
 	return stmt.Accept(i).(EvalResult)
+}
+
+func (i *Interpreter) executeBlock(statements []Stmt, environment *Environment) {
+	previous := i.Environment
+	defer func() { i.Environment = previous }()
+
+	i.Environment = environment
+	for _, statement := range statements {
+		evalResult := i.execute(statement)
+		var err RuntimeError
+		if errors.As(evalResult.Err, &err) {
+			runtimeError(err)
+			return
+		}
+	}
+}
+
+func (i *Interpreter) VisitBlockStmt(stmt Block) any {
+	i.executeBlock(stmt.Statements, &Environment{i.Environment, make(map[string]any)})
+	return EvalResult{}
 }
 
 func (i *Interpreter) VisitExpressionStmt(stmt Expression) any {

@@ -88,12 +88,12 @@ func lineError(line int, message string) {
 func tokenError(token Token, message string) {
 	if token.Type == EOF {
 		report(token.Line, " at end", message)
-	} else {
-		report(token.Line, " at '"+token.Lexeme+"'", message)
+		return
 	}
+	report(token.Line, " at '"+token.Lexeme+"'", message)
 }
 
-func runtimeError(err RuntimeError) {
+func runtimeError(RuntimeError) {
 	// fmt.Println(err)
 	hadRuntimeError = true
 }
