@@ -10,6 +10,7 @@ type EvalResult struct {
 	Err   error
 }
 
+// Visitor functions bubble up any runtime errors for the 'Interpret' function to handle.
 type Interpreter struct {
 	Environment *Environment
 }
@@ -45,29 +46,39 @@ func (i *Interpreter) execute(stmt Stmt) EvalResult {
 	return stmt.Accept(i).(EvalResult)
 }
 
-func (i *Interpreter) executeBlock(statements []Stmt, environment *Environment) {
+func (i *Interpreter) executeBlock(statements []Stmt, environment *Environment) EvalResult {
 	previous := i.Environment
 	defer func() { i.Environment = previous }()
 
 	i.Environment = environment
 	for _, statement := range statements {
 		evalResult := i.execute(statement)
-		var err RuntimeError
-		if errors.As(evalResult.Err, &err) {
-			runtimeError(err)
-			return
+		if evalResult.Err != nil {
+			return evalResult
 		}
 	}
-}
-
-func (i *Interpreter) VisitBlockStmt(stmt Block) any {
-	i.executeBlock(stmt.Statements, &Environment{i.Environment, make(map[string]any)})
 	return EvalResult{}
 }
 
+func (i *Interpreter) VisitBlockStmt(stmt Block) any {
+	return i.executeBlock(stmt.Statements, &Environment{i.Environment, make(map[string]any)})
+}
+
 func (i *Interpreter) VisitExpressionStmt(stmt Expression) any {
-	evalResult := i.evaluate(stmt.Expression)
-	return evalResult
+	return i.evaluate(stmt.Expression)
+}
+
+func (i *Interpreter) VisitIfStmt(stmt If) any {
+	evalResult := i.evaluate(stmt.Condition)
+	if evalResult.Err != nil {
+		return evalResult
+	}
+	if isTruthy(evalResult.Value) {
+		return i.execute(stmt.ThenBranch)
+	} else if stmt.ElseBranch != nil {
+		return i.execute(stmt.ElseBranch)
+	}
+	return EvalResult{}
 }
 
 func (i *Interpreter) VisitPrintStmt(stmt Print) any {
@@ -80,10 +91,8 @@ func (i *Interpreter) VisitVarStmt(stmt Var) any {
 	var value any
 	if stmt.Initializer != nil {
 		evalResult := i.evaluate(stmt.Initializer)
-		var err RuntimeError
-		if errors.As(evalResult.Err, &err) {
-			runtimeError(err)
-			return EvalResult{}
+		if evalResult.Err != nil {
+			return evalResult
 		}
 		value = evalResult.Value
 	}
@@ -91,12 +100,31 @@ func (i *Interpreter) VisitVarStmt(stmt Var) any {
 	return EvalResult{}
 }
 
+// Hmm...
+func (i *Interpreter) VisitWhileStmt(stmt While) any {
+	evalResult := i.evaluate(stmt.Condition)
+	if evalResult.Err != nil {
+		return evalResult
+	}
+	whileCondition := evalResult.Value
+	for isTruthy(whileCondition) {
+		evalResult := i.execute(stmt.Body)
+		if evalResult.Err != nil {
+			return evalResult
+		}
+		evalResult = i.evaluate(stmt.Condition)
+		if evalResult.Err != nil {
+			return evalResult
+		}
+		whileCondition = evalResult.Value
+	}
+	return EvalResult{}
+}
+
 func (i *Interpreter) VisitAssignExpr(expr Assign) any {
 	evalResult := i.evaluate(expr.Value)
-	var err RuntimeError
-	if errors.As(evalResult.Err, &err) {
-		runtimeError(err)
-		return EvalResult{}
+	if evalResult.Err != nil {
+		return evalResult
 	}
 	i.Environment.assign(expr.Name, evalResult.Value)
 	return EvalResult{evalResult.Value, nil}
@@ -190,6 +218,26 @@ func (i *Interpreter) VisitGroupingExpr(expr Grouping) any {
 
 func (i *Interpreter) VisitLiteralExpr(expr Literal) any {
 	return EvalResult{expr.Value, nil}
+}
+
+func (i *Interpreter) VisitLogicalExpr(expr Logical) any {
+	evalResult := i.evaluate(expr.Left)
+	if evalResult.Err != nil {
+		return evalResult
+	}
+	left := evalResult.Value
+
+	if expr.Operator.Type == OR {
+		if isTruthy(left) {
+			return EvalResult{left, nil}
+		}
+	} else {
+		if !isTruthy(left) {
+			return EvalResult{left, nil}
+		}
+	}
+
+	return i.evaluate(expr.Right)
 }
 
 func (i *Interpreter) VisitUnaryExpr(expr Unary) any {

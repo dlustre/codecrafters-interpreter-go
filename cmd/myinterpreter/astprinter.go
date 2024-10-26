@@ -27,6 +27,10 @@ func (*AstPrinter) VisitLiteralExpr(expr Literal) any {
 	return stringify(expr.Value, "nil", true)
 }
 
+func (*AstPrinter) VisitLogicalExpr(expr Logical) any {
+	return nil
+}
+
 func (*AstPrinter) VisitUnaryExpr(expr Unary) any {
 	return parenthesize(expr.Operator.Lexeme, expr.Right)
 }

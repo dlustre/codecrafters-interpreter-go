@@ -16,22 +16,8 @@ func (p *Parser) ParseToStatements() []Stmt {
 			statements = append(statements, statement)
 		}
 	}
-
 	return statements
 }
-
-// func (p *Parser) ParseToStatements() []Stmt {
-// 	statements := []Stmt{}
-// 	for !p.isAtEnd() {
-// 		statement, err := p.declaration()
-// 		if err != nil {
-// 			return nil
-// 		}
-// 		statements = append(statements, statement)
-// 	}
-
-// 	return statements
-// }
 
 func (p *Parser) ParseToExpr() Expr {
 	expr, err := p.expression()
@@ -63,15 +49,45 @@ func (p *Parser) declaration() Stmt {
 	return stmt
 }
 
-// statement -> exprStmt | printStmt
+// statement -> exprStmt | ifStmt | printStmt | whileStmt | block
 func (p *Parser) statement() (Stmt, error) {
+	if p.match(IF) {
+		return p.ifStatement()
+	}
 	if p.match(PRINT) {
 		return p.printStatement()
+	}
+	if p.match(WHILE) {
+		return p.whileStatement()
 	}
 	if p.match(LEFT_BRACE) {
 		return Block{p.block()}, nil
 	}
 	return p.expressionStatement()
+}
+
+// ifStmt -> "if" "(" expression ")" statement ( "else" statement )?
+func (p *Parser) ifStatement() (Stmt, error) {
+	p.consume(LEFT_PAREN, "Expect '(' after 'if'.")
+	condition, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+	p.consume(RIGHT_PAREN, "Expect ')' after if condition.")
+
+	thenBranch, err := p.statement()
+	if err != nil {
+		return nil, err
+	}
+	var elseBranch Stmt
+	if p.match(ELSE) {
+		elseBranch, err = p.statement()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return If{condition, thenBranch, elseBranch}, nil
 }
 
 // printStmt -> "print" expression ";"
@@ -104,6 +120,22 @@ func (p *Parser) varDeclaration() (Stmt, error) {
 	return Var{name, initializer}, nil
 }
 
+// whileStmt -> "while" "(" expression ")" statement
+func (p *Parser) whileStatement() (Stmt, error) {
+	p.consume(LEFT_PAREN, "Expect '(' after 'while'.")
+	condition, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+	p.consume(RIGHT_PAREN, "Expect ')' after while condition.")
+	body, err := p.statement()
+	if err != nil {
+		return nil, err
+	}
+
+	return While{condition, body}, nil
+}
+
 // exprStmt -> expression ";"
 func (p *Parser) expressionStatement() (Stmt, error) {
 	expr, err := p.expression()
@@ -127,9 +159,9 @@ func (p *Parser) block() []Stmt {
 	return statements
 }
 
-// assignment -> (IDENTIFIER "=" assignment) | equality
+// assignment -> (IDENTIFIER "=" assignment) | logic_or
 func (p *Parser) assignment() (Expr, error) {
-	expr, err := p.equality()
+	expr, err := p.or()
 	if err != nil {
 		return nil, err
 	}
@@ -146,6 +178,44 @@ func (p *Parser) assignment() (Expr, error) {
 		}
 
 		parseError(equals, "Invalid assignment target.")
+	}
+
+	return expr, nil
+}
+
+// logic_or -> logic_and ( "or" logic_and )*
+func (p *Parser) or() (Expr, error) {
+	expr, err := p.and()
+	if err != nil {
+		return nil, err
+	}
+
+	for p.match(OR) {
+		operator := p.previous()
+		right, err := p.and()
+		if err != nil {
+			return nil, err
+		}
+		expr = Logical{expr, operator, right}
+	}
+
+	return expr, nil
+}
+
+// logic_and -> equality ( "and" equality )*
+func (p *Parser) and() (Expr, error) {
+	expr, err := p.equality()
+	if err != nil {
+		return nil, err
+	}
+
+	for p.match(AND) {
+		operator := p.previous()
+		right, err := p.equality()
+		if err != nil {
+			return nil, err
+		}
+		expr = Logical{expr, operator, right}
 	}
 
 	return expr, nil
@@ -339,5 +409,4 @@ func (p *Parser) synchronize() {
 
 		p.advance()
 	}
-
 }
